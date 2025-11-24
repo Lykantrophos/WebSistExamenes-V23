@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const nivelDificultadRoutes = require('./routes/nivelDificultadRoutes');
 const NivelDificultad = require('./models/NivelDificultad');
 const categoriaRoutes = require('./routes/categoriaRoutes');
-//const Categoria = require('./models/Categorias');//aumente esta, pero no se usa
+const subcategoriaRoutes = require('./routes/subcategoriaRoutes');
 
 const app = express();
 app.use(express.json());
@@ -13,6 +13,8 @@ app.use(express.json());
 // Rutas
 app.use('/api/niveles-dificultad', nivelDificultadRoutes);
 app.use('/api/categorias', categoriaRoutes);
+console.log('Montando rutas de subcategorias en /api/subcategorias');
+app.use('/api/subcategorias', subcategoriaRoutes);
 
 
 app.get('/niveles', async (req, res) => {
