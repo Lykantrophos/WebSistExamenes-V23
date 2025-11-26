@@ -8,6 +8,8 @@ const categoriaRoutes = require('./routes/categoriaRoutes');
 const subcategoriaRoutes = require('./routes/subcategoriaRoutes');
 const rangoEdadRoutes = require('./routes/rangoEdadRoutes');
 const preguntaRoutes = require('./routes/preguntaRoutes');
+const estadoPreguntaRoutes = require('./routes/estadoPreguntaRoutes');
+
 
 
 const app = express();
@@ -16,10 +18,11 @@ app.use(express.json());
 // Rutas
 app.use('/api/niveles-dificultad', nivelDificultadRoutes);
 app.use('/api/categorias', categoriaRoutes);
-//console.log('Montando rutas de subcategorias en /api/subcategorias');
 app.use('/api/subcategorias', subcategoriaRoutes);
 app.use('/api/rangos-edad', rangoEdadRoutes);
 app.use('/api/preguntas', preguntaRoutes);
+app.use('/api/estados-pregunta', estadoPreguntaRoutes);
+
 
 
 app.get('/niveles', async (req, res) => {
