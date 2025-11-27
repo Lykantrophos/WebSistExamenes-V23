@@ -1,70 +1,68 @@
+// server.js
+console.log(">>> SERVER JS EJECUTADO DESDE:", __filename);
 require("dotenv").config();
 
-const express = require('express');
-const mongoose = require('mongoose');
-const nivelDificultadRoutes = require('./routes/nivelDificultadRoutes');
-const NivelDificultad = require('./models/NivelDificultad');
-const categoriaRoutes = require('./routes/categoriaRoutes');
-const subcategoriaRoutes = require('./routes/subcategoriaRoutes');
-const rangoEdadRoutes = require('./routes/rangoEdadRoutes');
-const preguntaRoutes = require('./routes/preguntaRoutes');
-const estadoPreguntaRoutes = require('./routes/estadoPreguntaRoutes');
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
 
+
+// Rutas
+const nivelDificultadRoutes = require("./routes/nivelDificultadRoutes");
+const categoriaRoutes = require("./routes/categoriaRoutes");
+const subcategoriaRoutes = require("./routes/subcategoriaRoutes");
+const rangoEdadRoutes = require("./routes/rangoEdadRoutes");
+const preguntaRoutes = require("./routes/preguntaRoutes");
+const estadoPreguntaRoutes = require("./routes/estadoPreguntaRoutes");
+console.log(">>> CARGANDO authRoutes...");
+const authRoutes = require("./routes/authRoutes");
+console.log(">>> authRoutes cargado correctamente:", !!authRoutes);
 
 
 const app = express();
+// ===============================
+//        MIDDLEWARES
+// ===============================
+app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+// ===============================
+//            RUTAS
+// ===============================
+app.use("/api/niveles-dificultad", nivelDificultadRoutes);
+app.use("/api/categorias", categoriaRoutes);
+app.use("/api/subcategorias", subcategoriaRoutes);
+app.use("/api/rangos-edad", rangoEdadRoutes);
+app.use("/api/preguntas", preguntaRoutes);
+app.use("/api/estados-pregunta", estadoPreguntaRoutes);
+app.use("/api/auth", authRoutes);
+app.get("/api/auth/test2", (req, res) => {
+    res.send("TEST2 desde server.js");
+});
 
-// Rutas
-app.use('/api/niveles-dificultad', nivelDificultadRoutes);
-app.use('/api/categorias', categoriaRoutes);
-app.use('/api/subcategorias', subcategoriaRoutes);
-app.use('/api/rangos-edad', rangoEdadRoutes);
-app.use('/api/preguntas', preguntaRoutes);
-app.use('/api/estados-pregunta', estadoPreguntaRoutes);
-
-
-
-app.get('/niveles', async (req, res) => {
+// Ruta test para comprobar funcionamiento
+app.get("/test-server", (req, res) => {
+  res.json({ ok: true, msg: "Servidor funcionando" });
+});
+// ===============================
+//     CONEXIÓN A MONGO + RUN
+// ===============================
+async function main() {
   try {
-    const niveles = await NivelDificultad.find({}).sort({ nivel: 1 });
-    res.json(niveles);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-app.get('/ping', (req, res) => {
-  res.json({ ok: true, mensaje: 'Servidor responde /ping' });
-});
+    console.log("Conectando a MongoDB Atlas...");
+    await mongoose.connect(process.env.MONGODB_URI);
 
-// Seed inicial
-async function poblarDatosIniciales() {
-  const existentes = await NivelDificultad.find({});
-  if (existentes.length === 0) {
-    console.log("Insertando datos iniciales (Atlas)...");
-    await NivelDificultad.insertMany([
-      { nivel: "Fácil", descripcion: "Para niños", activo: true, creado_por: new mongoose.Types.ObjectId() },
-      { nivel: "Medio", descripcion: "Nivel intermedio", activo: true, creado_por: new mongoose.Types.ObjectId() },
-      { nivel: "Difícil", descripcion: "Para avanzados", activo: true, creado_por: new mongoose.Types.ObjectId() }
-    ]);
-    console.log("Seed completado en Atlas");
+    console.log("Conectado a MongoDB Atlas");
+
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () =>
+      console.log(`Servidor corriendo en http://localhost:${PORT}`)
+    );
+
+  } catch (error) {
+    console.error("ERROR AL CONECTAR MONGO:", error);
   }
 }
+main();
 
-async function iniciarServidor() {
-  const uri = process.env.MONGODB_URI;
-
-  console.log("Conectando a MongoDB Atlas...");
-  await mongoose.connect(uri);
-
-  console.log("Conectado a MongoDB Atlas");
-
-  await poblarDatosIniciales();
-}
-
-const PORT = process.env.PORT || 3000;
-
-iniciarServidor().then(() => {
-  app.listen(PORT, () => console.log(`Servidor corriendo en http://localhost:${PORT}`));
-});
 

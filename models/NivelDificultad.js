@@ -4,7 +4,7 @@ const nivelDificultadSchema = new mongoose.Schema({
     nivel: {
         type: String,
         required: true,
-        enum: ['Muy Fácil', 'Fácil', 'Medio', 'Difícil', 'Muy Difícil'],
+        enum: ['Fácil', 'Medio', 'Difícil'],
         unique: true
     },
     descripcion: {
