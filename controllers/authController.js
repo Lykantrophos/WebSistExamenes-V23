@@ -89,3 +89,25 @@ exports.login = async (req, res) => {
     }
 };
 
+//obtener todos los usuarios
+exports.obtenerUsuarios= async(req,res)=>{
+  try{
+    const usuarios = await Usuario.find().select("-password"); 
+    res.json(usuarios);
+  }catch(error){
+    console.error("ERROR obtenerUsuarios:", error);
+    res.status(500).json({ msg: "Error al obtener usuarios" });
+  }
+};
+//obtener usuarios por rol
+exports.obtenerUsuariosPorRol= async(req,res)=>{
+  try{
+    const { rol } = req.params;//rol viene de la URL
+    const usuarios = await Usuario.find({ rol: rol.toUpperCase() }).select("-password");
+    res.json(usuarios);
+  } catch (error) {
+    console.error("ERROR obtenerUsuariosPorRol:", error);
+    res.status(500).json({ msg: "Error al obtener usuarios por rol" });
+  }
+};
+

@@ -2,7 +2,7 @@
 // routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
-const { registrarUsuario, login } = require('../controllers/authController');
+const { registrarUsuario, login, obtenerUsuarios, obtenerUsuariosPorRol } = require('../controllers/authController');
 const auth = require('../middleware/auth');
 const { requireRole } = require('../middleware/roles');
 const bcrypt = require('bcryptjs');
@@ -27,6 +27,11 @@ router.post('/create-admin', async (req, res)=>{
 });
 /*router.post('/register', registrarUsuario);*/
 router.post('/register', auth, requireRole("ADMIN"), registrarUsuario);
+
+//listar todos los usuarios (solo ADMIN)
+router.get('/usuarios', auth, requireRole("ADMIN"), obtenerUsuarios);
+//listar usuarios por rol (solo ADMIN)
+router.get('/usuarios/:rol', auth, requireRole("ADMIN"), obtenerUsuariosPorRol);
 
 
 // ==================
