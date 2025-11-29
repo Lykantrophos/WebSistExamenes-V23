@@ -8,7 +8,7 @@ const jwt = require('jsonwebtoken');
 // ====================================
 exports.registrarUsuario = async (req, res) => {
     try {
-        const { correo, nombre_completo, password, rol, registrado_por } = req.body;
+        const { correo, nombre_completo, password, rol} = req.body;
 
         if (!correo || !password || !nombre_completo) {
             return res.status(400).json({ msg: "Datos incompletos" });
@@ -16,7 +16,7 @@ exports.registrarUsuario = async (req, res) => {
 
         const existe = await Usuario.findOne({ correo });
         if (existe) {
-            return res.status(400).json({ msg: "El correo ya está registrado" });
+            return res.status(400).json({ msg: "El correo que intentas registrar ya se encuentra registrado" });
         }
 
         const hashed = bcrypt.hashSync(password, 10);
@@ -26,7 +26,7 @@ exports.registrarUsuario = async (req, res) => {
             nombre_completo,
             password: hashed,
             rol: rol || "ESTUDIANTE",
-            registrado_por: registrado_por || null
+            registrado_por: req.usuario._id
         });
 
         await nuevoUsuario.save();

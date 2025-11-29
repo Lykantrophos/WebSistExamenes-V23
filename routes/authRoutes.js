@@ -2,9 +2,11 @@
 // routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
+const { registrarUsuario, login } = require('../controllers/authController');
+const auth = require('../middleware/auth');
+const { requireRole } = require('../middleware/roles');
 const bcrypt = require('bcryptjs');
 const Usuario = require('../models/Usuario');
-const { registrarUsuario, login } = require('../controllers/authController');
 
 console.log(">>> CARGADO authRoutes DESDE:", __filename);
 
@@ -15,6 +17,16 @@ router.use((req, res, next) => {
     next();
 });
 
+// ==================
+//      RUTAS JWT
+// ==================
+router.post('/login', login);
+//crear primer admin(bootstrap, sin token)
+router.post('/create-admin', async (req, res)=>{
+  //codigo hardcodeado para crear admin
+});
+/*router.post('/register', registrarUsuario);*/
+router.post('/register', auth, requireRole("ADMIN"), registrarUsuario);
 
 
 // ==================
@@ -29,17 +41,17 @@ router.get('/test', (req, res) => {
 // ==================
 router.post('/create-admin', async (req, res) => {
     try {
-        const existe = await Usuario.findOne({ correo: "admin@mail.com" });
+        const existe = await Usuario.findOne({ correo: "lolita@gmail.com" });
 
         if (existe) {
             return res.json({ msg: "El admin ya existe" });
         }
 
-        const hashed = bcrypt.hashSync("123456", 10);
+        const hashed = bcrypt.hashSync("lolita123", 10);
 
         const admin = await Usuario.create({
-            nombre_completo: "Administrador",
-            correo: "admin@mail.com",
+            nombre_completo: "Lolita_Miguel",
+            correo: "lolita@gmail.com",
             password: hashed,
             rol: "ADMIN",
             activo: true
@@ -79,10 +91,5 @@ router.post('/fix-pass', async (req, res) => {
     }
 });
 
-// ==================
-//      RUTAS JWT
-// ==================
-router.post('/login', login);
-router.post('/register', registrarUsuario);
-
 module.exports = router;
+
