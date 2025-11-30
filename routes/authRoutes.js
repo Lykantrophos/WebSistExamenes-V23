@@ -2,7 +2,7 @@
 // routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
-const { registrarUsuario, login, obtenerUsuarios, obtenerUsuariosPorRol } = require('../controllers/authController');
+const { registrarUsuario, login, obtenerUsuarios, obtenerUsuariosPorRol, actualizarEdadUsuario } = require('../controllers/authController');
 const auth = require('../middleware/auth');
 const { requireRole } = require('../middleware/roles');
 const bcrypt = require('bcryptjs');
@@ -21,10 +21,6 @@ router.use((req, res, next) => {
 //      RUTAS JWT
 // ==================
 router.post('/login', login);
-//crear primer admin(bootstrap, sin token)
-router.post('/create-admin', async (req, res)=>{
-  //codigo hardcodeado para crear admin
-});
 /*router.post('/register', registrarUsuario);*/
 router.post('/register', auth, requireRole("ADMIN"), registrarUsuario);
 
@@ -32,6 +28,9 @@ router.post('/register', auth, requireRole("ADMIN"), registrarUsuario);
 router.get('/usuarios', auth, requireRole("ADMIN"), obtenerUsuarios);
 //listar usuarios por rol (solo ADMIN)
 router.get('/usuarios/:rol', auth, requireRole("ADMIN"), obtenerUsuariosPorRol);
+
+//actualizar edad de los usrs que no tienen edad (solo ADMIN)
+router.put('/usuarios/:id/edad', auth, requireRole("ADMIN"), actualizarEdadUsuario);
 
 
 // ==================

@@ -8,7 +8,7 @@ const jwt = require('jsonwebtoken');
 // ====================================
 exports.registrarUsuario = async (req, res) => {
     try {
-        const { correo, nombre_completo, password, rol} = req.body;
+        const { correo, nombre_completo, password, rol, edad} = req.body;
 
         if (!correo || !password || !nombre_completo) {
             return res.status(400).json({ msg: "Datos incompletos" });
@@ -26,6 +26,7 @@ exports.registrarUsuario = async (req, res) => {
             nombre_completo,
             password: hashed,
             rol: rol || "ESTUDIANTE",
+            edad,
             registrado_por: req.usuario._id
         });
 
@@ -111,3 +112,27 @@ exports.obtenerUsuariosPorRol= async(req,res)=>{
   }
 };
 
+//pa los usuarios que fueron creados sin edad 
+exports.actualizarEdadUsuario= async(req,res)=>{
+  try{
+    const{id}=req.params;
+    const{edad}=req.body; 
+
+    if(!edad){
+      return res.status(400).json({msg: "debes proporcionar la edad" });
+    }
+
+    const usuario= await Usuario.findById(id);
+    if(!usuario){
+      return res.status(404).json({ msg: "usuario no encontrado" });
+    }
+
+    usuario.edad=edad;           
+    await usuario.save();
+    res.json({ msg: "edad actualizada correctamente", usuario });
+
+  } catch (error) {
+    console.error("ERROR actualizarEdadUsuario:", error);
+    res.status(500).json({ msg: "Error en el servidor" });
+  }
+};
