@@ -32,7 +32,8 @@ const UsuarioSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Usuario",
         default: null
-    }
+    },
+    edad: { type: Number, min: 0 }
 });
 
 module.exports = mongoose.model("Usuario", UsuarioSchema);
