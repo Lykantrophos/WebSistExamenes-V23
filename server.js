@@ -17,6 +17,8 @@ const estadoPreguntaRoutes = require("./routes/estadoPreguntaRoutes");
 console.log(">>> CARGANDO authRoutes...");
 const authRoutes = require("./routes/authRoutes");
 console.log(">>> authRoutes cargado correctamente:", !!authRoutes);
+const usuarioRoutes = require("./routes/usuarioRoutes");
+
 
 
 const app = express();
@@ -36,9 +38,8 @@ app.use("/api/rangos-edad", rangoEdadRoutes);
 app.use("/api/preguntas", preguntaRoutes);
 app.use("/api/estados-pregunta", estadoPreguntaRoutes);
 app.use("/api/auth", authRoutes);
-app.get("/api/auth/test2", (req, res) => {
-    res.send("TEST2 desde server.js");
-});
+app.use("/api/usuarios", usuarioRoutes);
+
 
 // Ruta test para comprobar funcionamiento
 app.get("/test-server", (req, res) => {
