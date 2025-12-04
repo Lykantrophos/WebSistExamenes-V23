@@ -1,3 +1,4 @@
+// models/NivelDificultad.js
 const mongoose = require('mongoose');
 
 const nivelDificultadSchema = new mongoose.Schema({

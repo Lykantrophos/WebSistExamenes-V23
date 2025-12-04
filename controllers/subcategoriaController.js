@@ -1,5 +1,4 @@
 // controllers/subcategoriaController.js
-
 const Subcategoria = require('../models/Subcategoria');
 
 exports.obtenerSubcategorias = async (req, res) => {

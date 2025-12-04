@@ -1,3 +1,4 @@
+// controllers/nivelDificultadController.js
 const NivelDificultad = require('../models/NivelDificultad.js');
 
 // Obtener todos los niveles de dificultad

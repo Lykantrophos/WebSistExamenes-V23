@@ -1,14 +1,31 @@
-//controllers/authController.js
+// controllers/authController.js
+
 const Usuario = require('../models/Usuario');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// ====================================
+// =====================================================
+//    FUNCIÓN PARA GENERAR JWT
+// =====================================================
+function generarJWT(usuario) {
+    const payload = {
+        uid: usuario._id,
+        rol: usuario.rol,
+        nombre: usuario.nombre_completo,
+        correo: usuario.correo
+    };
+
+    return jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: "8h"
+    });
+}
+
+// =====================================================
 //     REGISTRAR NUEVO USUARIO
-// ====================================
+// =====================================================
 exports.registrarUsuario = async (req, res) => {
     try {
-        const { correo, nombre_completo, password, rol, edad} = req.body;
+        const { correo, nombre_completo, password, rol, registrado_por } = req.body;
 
         if (!correo || !password || !nombre_completo) {
             return res.status(400).json({ msg: "Datos incompletos" });
@@ -16,7 +33,7 @@ exports.registrarUsuario = async (req, res) => {
 
         const existe = await Usuario.findOne({ correo });
         if (existe) {
-            return res.status(400).json({ msg: "El correo que intentas registrar ya se encuentra registrado" });
+            return res.status(400).json({ msg: "El correo ya está registrado" });
         }
 
         const hashed = bcrypt.hashSync(password, 10);
@@ -26,13 +43,21 @@ exports.registrarUsuario = async (req, res) => {
             nombre_completo,
             password: hashed,
             rol: rol || "ESTUDIANTE",
-            edad,
-            registrado_por: req.usuario._id
+            registrado_por: registrado_por || null,
+            activo: true
         });
 
         await nuevoUsuario.save();
 
-        res.status(201).json({ msg: "Usuario registrado correctamente" });
+        res.status(201).json({
+            msg: "Usuario registrado correctamente",
+            usuario: {
+                id: nuevoUsuario._id,
+                correo,
+                nombre_completo,
+                rol: nuevoUsuario.rol
+            }
+        });
 
     } catch (error) {
         console.error("ERROR registrarUsuario:", error);
@@ -40,9 +65,9 @@ exports.registrarUsuario = async (req, res) => {
     }
 };
 
-// ====================================
-//               LOGIN
-// ====================================
+// =====================================================
+//                   LOGIN
+// =====================================================
 exports.login = async (req, res) => {
     try {
         const { correo, password } = req.body;
@@ -67,21 +92,18 @@ exports.login = async (req, res) => {
             return res.status(400).json({ msg: "Credenciales incorrectas" });
         }
 
-        const payload = {
-            uid: usuario._id,
-            rol: usuario.rol,
-            nombre: usuario.nombre_completo,
-            correo: usuario.correo
-        };
-
-        const token = jwt.sign(payload, process.env.JWT_SECRET, {
-            expiresIn: "8h"
-        });
+        // Generar token
+        const token = generarJWT(usuario);
 
         res.json({
             msg: "Login exitoso",
             token,
-            usuario: payload
+            usuario: {
+                uid: usuario._id,
+                rol: usuario.rol,
+                nombre: usuario.nombre_completo,
+                correo: usuario.correo
+            }
         });
 
     } catch (error) {
@@ -90,49 +112,39 @@ exports.login = async (req, res) => {
     }
 };
 
-//obtener todos los usuarios
-exports.obtenerUsuarios= async(req,res)=>{
-  try{
-    const usuarios = await Usuario.find().select("-password"); 
-    res.json(usuarios);
-  }catch(error){
-    console.error("ERROR obtenerUsuarios:", error);
-    res.status(500).json({ msg: "Error al obtener usuarios" });
-  }
-};
-//obtener usuarios por rol
-exports.obtenerUsuariosPorRol= async(req,res)=>{
-  try{
-    const { rol } = req.params;//rol viene de la URL
-    const usuarios = await Usuario.find({ rol: rol.toUpperCase() }).select("-password");
-    res.json(usuarios);
-  } catch (error) {
-    console.error("ERROR obtenerUsuariosPorRol:", error);
-    res.status(500).json({ msg: "Error al obtener usuarios por rol" });
-  }
-};
+// =====================================================
+//                   RENEW TOKEN
+// =====================================================
+exports.renewToken = async (req, res) => {
+    try {
+        // auth.js colocó el usuario en req.usuario
+        const usuario = req.usuario;
 
-//pa los usuarios que fueron creados sin edad 
-exports.actualizarEdadUsuario= async(req,res)=>{
-  try{
-    const{id}=req.params;
-    const{edad}=req.body; 
+        if (!usuario) {
+            return res.status(401).json({ msg: "Token no válido" });
+        }
 
-    if(!edad){
-      return res.status(400).json({msg: "debes proporcionar la edad" });
+        const token = generarJWT(usuario);
+
+        res.json({
+            ok: true,
+            token,
+            usuario: {
+                uid: usuario._id,
+                rol: usuario.rol,
+                nombre: usuario.nombre_completo,
+                correo: usuario.correo
+            }
+        });
+
+    } catch (error) {
+        console.error("ERROR renewToken:", error);
+        res.status(500).json({ msg: "Error al renovar token" });
     }
-
-    const usuario= await Usuario.findById(id);
-    if(!usuario){
-      return res.status(404).json({ msg: "usuario no encontrado" });
-    }
-
-    usuario.edad=edad;           
-    await usuario.save();
-    res.json({ msg: "edad actualizada correctamente", usuario });
-
-  } catch (error) {
-    console.error("ERROR actualizarEdadUsuario:", error);
-    res.status(500).json({ msg: "Error en el servidor" });
-  }
 };
+module.exports = {
+    registrarUsuario: exports.registrarUsuario,
+    login: exports.login,
+    renewToken: exports.renewToken
+};
+

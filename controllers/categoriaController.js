@@ -1,3 +1,4 @@
+// controllers/categoriaController.js
 const Categoria = require('../models/Categoria');
 
 exports.obtenerCategorias = async (req, res) => {
