@@ -1,5 +1,6 @@
 // server.js
-// server.js
+console.log(">>> SERVER JS EJECUTADO DESDE:", __filename);
+
 require("dotenv").config();
 
 const express = require("express");
@@ -33,23 +34,9 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // ===============================
 console.log(">>> Cargando rutas...");
 
-// AUTH
-const authRoutes = require("./routes/authRoutes");
-app.use("/api/auth", authRoutes);
-console.log(">>> authRoutes CARGADO");
-
-// USUARIOS
-console.log(">>> require.resolve usuarioRoutes:", require.resolve("./routes/usuarioRoutes"));
-const usuarioRoutes = require("./routes/usuarioRoutes");
-app.use("/api/usuarios", usuarioRoutes);
-// ===============================
-//       RUTA DE PRUEBA PUT
-// ===============================
-//app.put("/test-put/:id", (req, res) => {
-  //  res.json({ msg: "TEST PUT GLOBAL EXITOSO", id: req.params.id, body: req.body });
-//});
-
-// RESTO
+app.use("/api/auth", require("./routes/authRoutes"));
+console.log(">>> usuarioRoutes CARGADO");
+app.use("/api/usuarios", require("./routes/usuarioRoutes"));
 app.use("/api/categorias", require("./routes/categoriaRoutes"));
 app.use("/api/subcategorias", require("./routes/subcategoriaRoutes"));
 app.use("/api/rangos-edad", require("./routes/rangoEdadRoutes"));
@@ -69,6 +56,17 @@ app.get("/test-server", (req, res) => {
 // ===============================
 app.use("*", (req, res) => {
   res.status(404).json({ msg: "Ruta no encontrada" });
+});
+
+// ===============================
+//     MANEJO GLOBAL DE ERRORES
+// ===============================
+app.use((err, req, res, next) => {
+  console.error("❌ ERROR GLOBAL:", err);
+  res.status(500).json({
+    msg: "Error interno del servidor",
+    error: err.message,
+  });
 });
 
 // ===============================

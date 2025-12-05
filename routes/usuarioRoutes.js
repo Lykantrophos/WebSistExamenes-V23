@@ -1,49 +1,44 @@
 // routes/usuarioRoutes.js
-
+console.log(">>> USANDO usuarioRoutes:", __filename);
 const express = require("express");
 const router = express.Router();
 
 const Usuario = require("../models/Usuario");
+const bcrypt = require("bcryptjs");
 const auth = require("../middleware/auth");
 const { requireRole } = require("../middleware/roles");
 
-// Lista de roles válidos
-const ROLES_VALIDOS = ["ADMIN", "PROF_EDITOR", "PROFESOR", "ESTUDIANTE"];
+// =====================================================
+//  🔧 RUTAS ESPECÍFICAS (con texto)
+// =====================================================
+
+// 🔧 DEBUG PASS (Debe ir primero)
+router.get("/debug-pass/:id", async (req, res) => {
+    try {
+        const usr = await Usuario.findById(req.params.id).select("+password");
+        if (!usr) return res.status(404).json({ msg: "Usuario no encontrado" });
+        res.json(usr);
+    } catch (error) {
+        console.error("Error debug-pass:", error);
+        res.status(500).json({ msg: "Error en debug-pass" });
+    }
+});
 
 // =====================================================
-//  GET /api/usuarios  --> listar usuarios
+//  GET /api/usuarios        → listar todos (ADMIN)
 // =====================================================
 router.get("/", auth, requireRole("ADMIN"), async (req, res) => {
     try {
         const usuarios = await Usuario.find().select("-password");
         res.json(usuarios);
     } catch (error) {
-        console.error(error);
+        console.error("Error GET usuarios:", error);
         res.status(500).json({ msg: "Error al obtener usuarios" });
     }
 });
 
 // =====================================================
-//  GET /api/usuarios/:id
-// =====================================================
-router.get("/:id", auth, requireRole("ADMIN"), async (req, res) => {
-    try {
-        const usuario = await Usuario.findById(req.params.id).select("-password");
-
-        if (!usuario) {
-            return res.status(404).json({ msg: "Usuario no encontrado" });
-        }
-
-        res.json(usuario);
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ msg: "Error al obtener el usuario" });
-    }
-});
-
-// =====================================================
-//  POST /api/usuarios  --> crear usuario
+//  POST /api/usuarios       → crear usuario
 // =====================================================
 router.post("/", auth, requireRole("ADMIN"), async (req, res) => {
     try {
@@ -53,69 +48,75 @@ router.post("/", auth, requireRole("ADMIN"), async (req, res) => {
             return res.status(400).json({ msg: "Datos incompletos" });
         }
 
+        const ROLES_VALIDOS = ["ADMIN", "PROF_EDITOR", "PROFESOR", "ESTUDIANTE"];
         if (!ROLES_VALIDOS.includes(rol)) {
             return res.status(400).json({ msg: "Rol inválido" });
         }
 
-        // Validación: correo único
-        const existente = await Usuario.findOne({ correo });
-        if (existente) {
-            return res.status(400).json({ msg: "El correo ya está registrado" });
-        }
+        const existe = await Usuario.findOne({ correo });
+        if (existe) return res.status(400).json({ msg: "El correo ya está registrado" });
 
-        const nuevo = new Usuario({
+        const hashed = bcrypt.hashSync(password, 10);
+
+        const nuevoUsuario = new Usuario({
             correo,
             nombre_completo,
-            password,
+            password: hashed,
             rol,
-            activo: true,
+            activo: true
         });
 
-        await nuevo.save();
+        await nuevoUsuario.save();
 
         res.json({
             msg: "Usuario creado correctamente",
             usuario: {
-                id: nuevo._id,
+                id: nuevoUsuario._id,
                 correo,
                 nombre_completo,
                 rol,
-                activo: nuevo.activo,
-            },
+                activo: true
+            }
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Error POST usuarios:", error);
         res.status(500).json({ msg: "Error al crear usuario" });
     }
 });
 
+// --- RUTAS PARAMÉTRICAS POR ID AGRUPADAS ---
+
 // =====================================================
-//  PUT /api/usuarios/:id  --> editar usuario
+//  GET /api/usuarios/:id    → obtener usuario por ID
 // =====================================================
+router.get("/:id", auth, requireRole("ADMIN"), async (req, res) => {
+    try {
+        const usuario = await Usuario.findById(req.params.id).select("-password");
+        if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
+        res.json(usuario);
+    } catch (error) {
+        console.error("Error GET usuario por ID:", error);
+        res.status(500).json({ msg: "Error al obtener el usuario" });
+    }
+});
+
+// =====================================================
+//  PUT /api/usuarios/:id    → actualizar usuario
+// =====================================================
+// ⚠️ MANTENER COMENTADO PARA LA PRUEBA DE 404 ⚠️
 router.put("/:id", auth, requireRole("ADMIN"), async (req, res) => {
     try {
-        const { correo, nombre_completo, rol, activo } = req.body;
+        const { nombre_completo, correo, rol, activo } = req.body;
+
         const updates = {};
-
-        // Validación de rol
-        if (rol) {
-            if (!ROLES_VALIDOS.includes(rol)) {
-                return res.status(400).json({ msg: "Rol inválido" });
-            }
-        }
-
-        // Evitar que el ADMIN se quite el propio rol
-        if (req.params.id === req.usuario.id && rol && rol !== "ADMIN") {
-            return res.status(400).json({
-                msg: "No puedes quitarte tu propio rol de ADMIN",
-            });
-        }
-
-        if (correo) updates.correo = correo;
         if (nombre_completo) updates.nombre_completo = nombre_completo;
+        if (correo) updates.correo = correo;
         if (rol) updates.rol = rol;
         if (activo !== undefined) updates.activo = activo;
+
+        // ❗ Nunca actualizar password aquí
+        delete updates.password;
 
         const usuario = await Usuario.findByIdAndUpdate(
             req.params.id,
@@ -123,23 +124,21 @@ router.put("/:id", auth, requireRole("ADMIN"), async (req, res) => {
             { new: true }
         ).select("-password");
 
-        if (!usuario) {
-            return res.status(404).json({ msg: "Usuario no encontrado" });
-        }
+        if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
 
         res.json({
             msg: "Usuario actualizado correctamente",
-            usuario,
+            usuario
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Error PUT usuarios:", error);
         res.status(500).json({ msg: "Error al actualizar usuario" });
     }
 });
 
 // =====================================================
-//  DELETE /api/usuarios/:id  --> desactivar usuario
+//  DELETE /api/usuarios/:id  → desactivar usuario
 // =====================================================
 router.delete("/:id", auth, requireRole("ADMIN"), async (req, res) => {
     try {
@@ -149,44 +148,29 @@ router.delete("/:id", auth, requireRole("ADMIN"), async (req, res) => {
             { new: true }
         ).select("-password");
 
-        if (!usuario) {
-            return res.status(404).json({ msg: "Usuario no encontrado" });
-        }
-
-        // Evitar que el ADMIN se desactive a sí mismo
-        if (req.params.id === req.usuario.id) {
-            return res.status(400).json({
-                msg: "No puedes desactivar tu propio usuario",
-            });
-        }
+        if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
 
         res.json({
             msg: "Usuario desactivado",
-            usuario,
+            usuario
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Error DELETE usuarios:", error);
         res.status(500).json({ msg: "Error al desactivar usuario" });
     }
 });
 
 // =====================================================
-//  PATCH /api/usuarios/:id/rol  --> cambiar rol
+//  PATCH /api/usuarios/:id/rol → cambiar rol
 // =====================================================
 router.patch("/:id/rol", auth, requireRole("ADMIN"), async (req, res) => {
     try {
         const { rol } = req.body;
 
+        const ROLES_VALIDOS = ["ADMIN", "PROF_EDITOR", "PROFESOR", "ESTUDIANTE"];
         if (!ROLES_VALIDOS.includes(rol)) {
             return res.status(400).json({ msg: "Rol inválido" });
-        }
-
-        // Evitar que el ADMIN degrade su propio usuario
-        if (req.params.id === req.usuario.id && rol !== "ADMIN") {
-            return res.status(400).json({
-                msg: "No puedes cambiar tu propio rol de ADMIN",
-            });
         }
 
         const usuario = await Usuario.findByIdAndUpdate(
@@ -195,17 +179,15 @@ router.patch("/:id/rol", auth, requireRole("ADMIN"), async (req, res) => {
             { new: true }
         ).select("-password");
 
-        if (!usuario) {
-            return res.status(404).json({ msg: "Usuario no encontrado" });
-        }
+        if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
 
         res.json({
             msg: "Rol actualizado correctamente",
-            usuario,
+            usuario
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Error PATCH usuarios:", error);
         res.status(500).json({ msg: "Error al actualizar rol" });
     }
 });

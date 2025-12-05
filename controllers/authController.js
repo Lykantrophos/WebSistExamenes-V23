@@ -142,9 +142,3 @@ exports.renewToken = async (req, res) => {
         res.status(500).json({ msg: "Error al renovar token" });
     }
 };
-module.exports = {
-    registrarUsuario: exports.registrarUsuario,
-    login: exports.login,
-    renewToken: exports.renewToken
-};
-
